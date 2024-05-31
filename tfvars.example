@@ -1,0 +1,3 @@
+db_master_user = ""
+db_app_user    = ""
+db_admin_user  = ""
