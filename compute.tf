@@ -133,6 +133,7 @@ resource "aws_lambda_function" "dragon" {
       AWS_ACCOUNT         = data.aws_caller_identity.current.account_id
       DB_ID               = aws_db_instance.dragon.identifier
       DB_ADMIN_SECRET_KEY = var.secret_key_db_admin_credentials
+      DB_APP_SECRET_KEY   = var.secret_key_db_app_credentials
       DB_HOST             = aws_db_instance.dragon.endpoint
       DB_NAME             = var.db_name
     }

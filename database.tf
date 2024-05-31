@@ -12,6 +12,14 @@ resource "aws_vpc_security_group_ingress_rule" "rds_ingress" {
   referenced_security_group_id = aws_security_group.lambda_sg.id
 }
 
+resource "aws_vpc_security_group_ingress_rule" "rds_bastion_ingress" {
+  security_group_id            = aws_security_group.rds_sg.id
+  from_port                    = 3306
+  to_port                      = 3306
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.bastion.id
+}
+
 resource "aws_vpc_security_group_egress_rule" "rds_egress" {
   security_group_id = aws_security_group.rds_sg.id
   ip_protocol       = "-1"
@@ -28,7 +36,7 @@ resource "aws_db_subnet_group" "dragon" {
 }
 
 resource "aws_db_instance" "dragon" {
-  identifier                  = "crewdragon"
+  identifier                  = "dragonfly"
   allocated_storage           = 10
   db_name                     = "dragon"
   engine                      = "mysql"
