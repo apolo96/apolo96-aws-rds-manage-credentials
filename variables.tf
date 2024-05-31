@@ -13,7 +13,7 @@ variable "db_admin_user" {
 variable "secret_key_db_admin_credentials" {
   description = "Secret name for admin credentials"
   type        = string
-  default     = "/db/admin/credentials"
+  default     = "/db/dragon/admin/credentials"
 }
 
 variable "db_app_user" {
@@ -25,7 +25,7 @@ variable "db_app_user" {
 variable "secret_key_db_app_credentials" {
   description = "Secret name for app credentials"
   type        = string
-  default     = "/db/app/credentials"
+  default     = "/db/dragon/app/credentials"
 }
 
 variable "db_name" {
