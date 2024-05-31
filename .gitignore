@@ -75,3 +75,5 @@ terraform.rc
 **/*.zip
 
 **/*.pem
+
+rdscon.sh
