@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -66,67 +67,113 @@ func getSecret(ctx context.Context, svc *secretsmanager.Client, secretName strin
 }
 
 func handler(ctx context.Context) (string, error) {
+	lc, ok := lambdacontext.FromContext(ctx)
+	if !ok {
+		fmt.Print("can't get lambda context")
+	}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	logger = logger.With("RequestId", lc.AwsRequestID)
+	slog.SetDefault(logger)
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		slog.Error("unable to load SDK config", "error", err.Error())
+		err := fmt.Errorf("unable to load SDK config %v", err)
+		slog.Error(err.Error())
+		return "", err
 	}
 	svc := secretsmanager.NewFromConfig(cfg)
-	slog.Info("Environment vars", "envs", fmt.Sprint(
-		os.Getenv("AWS_REGION"),
-		os.Getenv("AWS_ACCOUNT"),
-		os.Getenv("DB_ID"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_ADMIN_SECRET_KEY"),
-	))
 	secretLabel := fmt.Sprintf(
 		"arn:aws:rds:%s:%s:db:%s",
 		os.Getenv("AWS_REGION"),
 		os.Getenv("AWS_ACCOUNT"),
 		os.Getenv("DB_ID"),
 	)
-	slog.Info("Secret Tag " + secretLabel)
+	slog.Info("secret tag " + secretLabel)
 	secrets, err := getSecretByTag(ctx, svc, "aws:rds:primaryDBInstanceArn", secretLabel)
 	if err != nil {
-		return "", fmt.Errorf("failed to get secret: %v", err)
+		slog.Error("failed to get master secret value", "error", err.Error(), "secret_name", secretLabel)
+		return "", fmt.Errorf("failed to get master secret value: %v", err)
 	}
 	if secrets.Username == "" || secrets.Password == "" {
-		return "", fmt.Errorf("master credentials are empty: %v", err)
+		err := fmt.Errorf("master credentials are empty")
+		slog.Error(err.Error())
+		return "", err
 	}
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/", secrets.Username, secrets.Password, os.Getenv("DB_HOST"))
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		return "", fmt.Errorf("failed to connect to database: %v", err)
+		err := fmt.Errorf("failed to connect to database: %v", err)
+		slog.Error(err.Error())
+		return "", err
 	}
 	defer db.Close()
 	err = db.Ping()
 	if err != nil {
-		return "", fmt.Errorf("failed to ping database: %v", err)
+		err := fmt.Errorf("failed to ping database: %v", err)
+		slog.Error(err.Error())
+		return "", err
 	}
 	dbName := os.Getenv("DB_NAME")
 	_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
 	if err != nil {
-		return "", fmt.Errorf("failed to create database: %v", err)
+		err := fmt.Errorf("failed to create database: %v", err)
+		slog.Error(err.Error(), "database", dbName)
+		return "", err
 	}
+	/* ADMIN DB USER */
 	adminCreds, err := getSecret(ctx, svc, os.Getenv("DB_ADMIN_SECRET_KEY"))
 	if err != nil {
-		return "", fmt.Errorf("failed to get secret value: %v", err)
+		err := fmt.Errorf("failed to get admin secret value: %v", err)
+		slog.Error(err.Error(), "secret_name", os.Getenv("DB_ADMIN_SECRET_KEY"))
+		return "", err
 	}
 	if adminCreds.Username == "" || adminCreds.Password == "" {
-		return "", fmt.Errorf("admin credentials are empty: %v", err)
+		err := fmt.Errorf("admin credentials are empty")
+		slog.Error(err.Error())
+		return "", err
 	}
 	_, err = db.Exec(fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED BY '%s'", adminCreds.Username, adminCreds.Password))
 	if err != nil {
-		return "", fmt.Errorf("failed to create user: %v", err)
+		err := fmt.Errorf("failed to create admin user: %v", err)
+		slog.Error(err.Error())
+		return "", err
 	}
 	_, err = db.Exec(fmt.Sprintf("GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%%'", dbName, adminCreds.Username))
 	if err != nil {
-		return "", fmt.Errorf("failed to grant privileges: %v", err)
+		err := fmt.Errorf("failed to admin grant privileges: %v", err)
+		slog.Error(err.Error())
+		return "", err
+	}
+	/* APP DB USER */
+	appCreds, err := getSecret(ctx, svc, os.Getenv("DB_APP_SECRET_KEY"))
+	if err != nil {
+		err := fmt.Errorf("failed to get app secret value: %v", err)
+		slog.Error(err.Error(), "secret_name", os.Getenv("DB_APP_SECRET_KEY"))
+		return "", err
+	}
+	if appCreds.Username == "" || appCreds.Password == "" {
+		err := fmt.Errorf("app credentials are empty")
+		slog.Error(err.Error())
+		return "", err
+	}
+	_, err = db.Exec(fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED BY '%s'", appCreds.Username, appCreds.Password))
+	if err != nil {
+		err := fmt.Errorf("failed to create app user: %v", err)
+		slog.Error(err.Error())
+		return "", err
+	}
+	_, err = db.Exec(fmt.Sprintf("GRANT INSERT, UPDATE, DELETE, SELECT, REFERENCES ON %s.* TO '%s'@'%%'", dbName, appCreds.Username))
+	if err != nil {
+		err := fmt.Errorf("failed to grant privileges for app user: %v", err)
+		slog.Error(err.Error())
+		return "", err
 	}
 	_, err = db.Exec("FLUSH PRIVILEGES")
 	if err != nil {
-		return "", fmt.Errorf("failed to flush privileges: %v", err)
+		err := fmt.Errorf("failed to flush privileges: %v", err)
+		slog.Error(err.Error())
+		return "", err
 	}
+	slog.Info("database and user created successfully")
 	return "Database and user created successfully", nil
 }
 
