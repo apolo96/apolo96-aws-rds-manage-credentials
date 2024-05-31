@@ -14,8 +14,6 @@ resource "aws_vpc_security_group_ingress_rule" "rds_ingress" {
 
 resource "aws_vpc_security_group_egress_rule" "rds_egress" {
   security_group_id = aws_security_group.rds_sg.id
-  from_port         = 0
-  to_port           = 0
   ip_protocol       = "-1"
   cidr_ipv4         = "0.0.0.0/0"
 }
@@ -30,13 +28,13 @@ resource "aws_db_subnet_group" "dragon" {
 }
 
 resource "aws_db_instance" "dragon" {
-  identifier                  = var.rds_db_identifier
+  identifier                  = "crewdragon"
   allocated_storage           = 10
   db_name                     = "dragon"
   engine                      = "mysql"
   engine_version              = "8.0"
   instance_class              = "db.t3.micro"
-  username                    = var.rds_dragon_username
+  username                    = var.db_master_user
   manage_master_user_password = true
   parameter_group_name        = "default.mysql8.0"
   db_subnet_group_name        = aws_db_subnet_group.dragon.name
@@ -44,12 +42,12 @@ resource "aws_db_instance" "dragon" {
   vpc_security_group_ids      = [aws_security_group.rds_sg.id]
 }
 
-resource "aws_db_event_subscription" "dragon" {
-  name      = "rds-event-sub"
-  sns_topic = aws_sns_topic.dragon.arn
+resource "aws_db_event_subscription" "dragon_db_ops" {
+  name      = "dragon-db-ops"
+  sns_topic = aws_sns_topic.dragon_db_ops.arn
 
   source_type = "db-instance"
-  source_ids  = [var.rds_db_identifier]
+  source_ids  = [aws_db_instance.dragon.identifier]
 
   event_categories = [
     "creation",

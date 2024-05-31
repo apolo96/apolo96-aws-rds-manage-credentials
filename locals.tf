@@ -1,8 +1,8 @@
 locals {
-  function_name = "rds-create-user"
-  src_path      = "${path.module}/lambda/${local.function_name}"
+  function_name = "bootstrap"
+  src_path      = "${path.module}/lambda/rds-create-app-user"
 
   binary_name  = local.function_name
-  binary_path  = "${path.module}/tf_artifacts/${local.binary_name}"
-  archive_path = "${path.module}/tf_artifacts/${local.function_name}.zip"
+  binary_path  = "${local.src_path}/bin/${local.binary_name}"
+  archive_path = "${local.src_path}/${substr(filesha256("${local.src_path}/main.go"), 0, 10)}.zip"
 }

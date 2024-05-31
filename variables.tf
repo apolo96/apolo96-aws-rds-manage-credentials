@@ -1,22 +1,47 @@
-variable "rds_dragon_username" {
-  description = "AWS RDS Dragon Username"
+variable "db_master_user" {
+  description = "AWS RDS Master Username"
   type        = string
+  sensitive   = true
 }
 
-variable "secret_name_db_user" {
-  description = "AWS RDS Dragon Username"
+variable "db_admin_user" {
+  description = "AWS RDS Admin Username"
   type        = string
-  default     = "DRAGON_RDS_DB_USERNAME"
+  sensitive   = true
 }
 
-variable "secret_name_db_password" {
-  description = "AWS RDS Dragon Username"
+variable "secret_key_db_admin_credentials" {
+  description = "Secret name for admin credentials"
   type        = string
-  default     = "DRAGON_RDS_DB_PASSWORD"
+  default     = "/db/admin/credentials"
 }
 
-variable "rds_db_identifier" {
-  description = "AWS RDS Identifier"
+variable "db_app_user" {
+  description = "AWS RDS App Username"
   type        = string
-  default     = "dragon"
+  sensitive   = true
+}
+
+variable "secret_key_db_app_credentials" {
+  description = "Secret name for app credentials"
+  type        = string
+  default     = "/db/app/credentials"
+}
+
+variable "db_name" {
+  description = "database name"
+  type        = string
+  default     = "ares"
+}
+
+variable "organization" {
+  description = "Org Name"
+  type        = string
+  default     = "umbrella"
+}
+
+variable "environment" {
+  description = "Environment Name"
+  type        = string
+  default     = "lab"
 }

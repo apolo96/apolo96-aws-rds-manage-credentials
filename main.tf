@@ -12,15 +12,11 @@ provider "aws" {
   profile = "tfaws"
   default_tags {
     tags = {
-      Environment = "test"
-      ProjectID   = "dragon"
+      Environment  = var.environment
+      ProjectID    = "dragon"
+      Organization = var.organization
     }
   }
-}
-
-resource "aws_security_group" "lambda_sg" {
-  name   = "lambda-dragon-security-group"
-  vpc_id = aws_default_vpc.default.id
 }
 
 
