@@ -73,3 +73,5 @@ terraform.rc
 .terraform.lock.hcl
 
 **/*.zip
+
+**/*.pem
