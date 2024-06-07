@@ -47,7 +47,7 @@ resource "null_resource" "app_function_binary" {
   }
 }
 
-data "archive_file" "app_function_archive" {  
+data "archive_file" "app_function_archive" {
   type        = "zip"
   source_file = local.app_binary_path
   output_path = local.app_archive_path
@@ -67,7 +67,7 @@ resource "aws_lambda_function" "app_dragon" {
   runtime = "provided.al2023"
 
   vpc_config {
-    subnet_ids         = ["subnet-2d8fa960"]
+    subnet_ids         = [aws_subnet.private1.id]
     security_group_ids = [aws_security_group.lambda_sg.id]
   }
 

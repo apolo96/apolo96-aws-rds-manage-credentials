@@ -80,7 +80,7 @@ resource "aws_iam_role_policy_attachment" "lambda_secrets_manager" {
 
 resource "aws_security_group" "lambda_sg" {
   name   = "lambda-dragon-security-group"
-  vpc_id = aws_default_vpc.default.id
+  vpc_id = aws_vpc.main.id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "lambda_ingress" {
@@ -124,7 +124,7 @@ resource "aws_lambda_function" "dragon" {
   runtime = "provided.al2023"
 
   vpc_config {
-    subnet_ids         = ["subnet-2d8fa960"]
+    subnet_ids         = [aws_subnet.private1.id]
     security_group_ids = [aws_security_group.lambda_sg.id]
   }
 

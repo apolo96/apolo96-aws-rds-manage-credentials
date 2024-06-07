@@ -1,7 +1,7 @@
 
 resource "aws_security_group" "rds_sg" {
   name   = "rds-dragon-security-group"
-  vpc_id = aws_default_vpc.default.id
+  vpc_id = aws_vpc.main.id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "rds_ingress" {
@@ -28,7 +28,7 @@ resource "aws_vpc_security_group_egress_rule" "rds_egress" {
 
 resource "aws_db_subnet_group" "dragon" {
   name       = "subnet-group-dragon"
-  subnet_ids = ["subnet-f03de7c1", "subnet-fa54c7a5"]
+  subnet_ids = [aws_subnet.private1.id, aws_subnet.private2.id]
 
   tags = {
     Name = "Dragon DB subnet group"

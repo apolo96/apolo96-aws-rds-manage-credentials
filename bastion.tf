@@ -9,8 +9,8 @@ resource "aws_key_pair" "bastion_key_pair" {
 }
 
 resource "local_file" "tf_key" {
-  content  = tls_private_key.bastion_key.private_key_pem
-  filename = "bastion_key.pem"
+  content         = tls_private_key.bastion_key.private_key_pem
+  filename        = "bastion_key.pem"
   file_permission = "0400"
 }
 
@@ -30,7 +30,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_security_group" "bastion" {
   name   = "bastion-dragon-security-group"
-  vpc_id = aws_default_vpc.default.id
+  vpc_id = aws_vpc.main.id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "bastion" {
@@ -38,7 +38,7 @@ resource "aws_vpc_security_group_ingress_rule" "bastion" {
   from_port         = 22
   to_port           = 22
   ip_protocol       = "tcp"
-  cidr_ipv4         = "201.185.198.7/32"
+  cidr_ipv4         = "0.0.0.0/0"
 }
 
 resource "aws_vpc_security_group_egress_rule" "bastion" {
@@ -52,7 +52,7 @@ resource "aws_instance" "bastion" {
   instance_type          = "t3.micro"
   key_name               = aws_key_pair.bastion_key_pair.key_name
   vpc_security_group_ids = [aws_security_group.bastion.id]
-  subnet_id              = "subnet-1075e831"
+  subnet_id              = aws_subnet.public.id
   tags = {
     Name = "bastion-dragon"
   }
